@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np
 
-def parseCsvData(filename: str):
+def parseCsvData(filename: str) -> tuple[list[datetime], dict[str, list[float]]]:
     x = []
     y = {}
     with open(filename, newline="") as csvfile:
@@ -21,18 +21,21 @@ def parseCsvData(filename: str):
                         y[key].append(value)
     return x, y
 
-def getNextPlotColor(i: int, defaultColor: str = "pink"):
-    colors = ["green", "royalblue", "red", "orange", "deepskyblue", "blueviolet", "lime", "black", "gray"]
+def nextColor(i: int, defaultColor: str = "pink"):
+    colors = ["green", "royalblue", "red", "orange", "deepskyblue", "blueviolet", "lime", "black", "gray", "darkgray"]
     try:
         return colors[i]
     except IndexError:
         return defaultColor
 
-def generateChart(x, y):
+def generateChart(x: list[datetime], y: dict[str, list[float]], overviewLines: list[str] = []):
     fig, ((ax1)) = plt.subplots(nrows=1, ncols=1, figsize=(14, 8))
 
     for i, key in enumerate(y.keys()):
-        ax1.plot(x, y[key], '-', linewidth=2, label=key, marker='.', color=getNextPlotColor(i))
+        if key in overviewLines:
+            ax1.plot(x, y[key], ':', linewidth=2, label=key, marker=None, color=nextColor(i))
+        else:
+            ax1.plot(x, y[key], '-', linewidth=2, label=key, marker='.', color=nextColor(i))
 
     ax1.set_title('Overview')
     ax1.legend(fancybox=True, shadow=True, loc='upper left', fontsize='small', frameon=True)
@@ -43,6 +46,21 @@ def generateChart(x, y):
     
     plt.show()
 
+def createOverviewLine(x: list[datetime], y: dict[str, list[float]], excludeKeys: list[str] = []):
+    result = []
+    for i in range(len(x)):
+        sum = 0
+        for key in y.keys():
+            if key in excludeKeys:
+                continue
+            sum += y[key][i] if y[key][i] is not None else 0
+        result.append(sum)
+    return result
+    
 x, y = parseCsvData("data.csv")
 # print(y)
-generateChart(x, y)
+total = createOverviewLine(x, y)
+total2 = createOverviewLine(x, y, excludeKeys=["Spor. ucty"])
+y["Total"] = total
+y["Inv. Total"] = total2
+generateChart(x, y, ["Total", "Inv. Total"])
